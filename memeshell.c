@@ -54,6 +54,11 @@ void print_shell() {
 
 char *read_line(void){
 	char *line = malloc(sizeof(char) * LINE_BUFFER);
+	if (line == NULL) {
+		fprintf(stderr, "Your system has some issues.\n");
+		exit(EXIT_FAILURE);
+	}
+	memset(line, 0, LINE_BUFFER);
 	fgets(line, LINE_BUFFER, stdin);
 	return line;
 }
@@ -66,8 +71,19 @@ int line_delim(char c){
 
 char **read_args(char *line){
 	char **args = malloc(sizeof(char*) * ARG_MAX);
-	for (int i = 0; i < ARG_MAX; i++)
+	if (args == NULL) {
+		fprintf(stderr, "Your system has some issues.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for (int i = 0; i < ARG_MAX; i++) {
 		args[i] = malloc(sizeof(char) * ARG_BUF);
+		if (args[i] == NULL) {
+			fprintf(stderr, "Your system has some issues.\n");
+			exit(EXIT_FAILURE);
+		}
+		memset(args[i], 0, ARG_BUF);
+	}
 
 	int i = 0, j = 0, k = 0;
 
