@@ -24,6 +24,7 @@
 void print_shell(void);
 char *read_line(void);
 char **read_args(char *line);
+int line_delim(char c);
 int run_cmd(char **cmd);
 int pwd();
 
@@ -57,6 +58,12 @@ char *read_line(void){
 	return line;
 }
 
+int line_delim(char c){
+	if (c == ' ' || c == '\0' || c == '\n')
+		return 1;
+	return 0;
+}
+
 char **read_args(char *line){
 	char **args = malloc(sizeof(char*) * ARG_MAX);
 	for (int i = 0; i < ARG_MAX; i++)
@@ -65,18 +72,18 @@ char **read_args(char *line){
 	int i = 0, j = 0, k = 0;
 
 	/* Trim any whitespace in the beginning. */
-	while (line[i] == ' ') {
+	while (line_delim(line[i])) {
 		i++;
 	}
 
 	for (; i < LINE_BUFFER; i++) {
-		if (line[i] == ' ') {
+		if (line_delim(line[i])) {
 			j++;
 			k = 0;
-			i++;
+		} else {
+			args[j][k] = line[i];
+			k++;
 		}
-		args[j][k] = line[i];
-		k++;
 	}
 
 	return args;
