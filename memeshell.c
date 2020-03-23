@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 /*
  * Making some macros to improve readability and portability.
@@ -22,6 +22,7 @@
 #define CONTINUE     1
 #define STOP         0
 
+void sigint_handler(int signum);
 void print_shell(void);
 char *read_line(void);
 char **read_args(char *line);
@@ -31,6 +32,7 @@ int pwd();
 int cd(char **cmd);
 
 int main(void) {
+	signal(SIGINT, sigint_handler);
 	char *line, **args;
 	int status = CONTINUE;
 
@@ -120,11 +122,11 @@ int run_cmd(char **cmd) {
 
 	pid = fork();
 	if (pid == -1)  {
-		fprintf(stderr, "Error: fork failed.");
+		fprintf(stderr, "Error: fork failed.\n");
 		exit(EXIT_FAILURE);
 	} else if (pid == 0) {
 		execvp(cmd[0],cmd);
-		fprintf(stderr, "Error: command not found\n");
+		fprintf(stderr, "Error: that's not a thing guy.\n");
 		exit(EXIT_FAILURE);
 	} else {
 		waitpid(-1, &status, 0);
@@ -133,7 +135,7 @@ int run_cmd(char **cmd) {
 	}
 }
 
-int pwd()  {
+int pwd() {
 	char curdir[LINE_BUFFER];
 	getcwd(curdir, LINE_BUFFER);
 	printf(" %s\n", curdir);
@@ -151,4 +153,8 @@ int cd(char **cmd){
 		fprintf(stderr, "Not a directory or something.\n");
 	}
 	return CONTINUE;
+}
+
+void sigint_handler(int signum) {
+	printf("BWA HA HA HA HA HA HA\n");
 }
