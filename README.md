@@ -1,0 +1,2 @@
+# memeshell
+silly ideas galore
