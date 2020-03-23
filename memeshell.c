@@ -30,22 +30,24 @@ int line_delim(char c);
 int run_cmd(char **cmd);
 int pwd();
 int cd(char **cmd);
+int exit_shell(char **cmd);
+int external(char **cmd);
 
 int main(void) {
 	signal(SIGINT, sigint_handler);
-	char *line, **args;
+	char *line, **cmd;
 	int status = CONTINUE;
 
 	while(status) {
 		print_shell();
 		line = read_line();
-		args = read_args(line);
-		status = run_cmd(args);
+		cmd = read_args(line);
+		status = run_cmd(cmd);
 
 		free(line);
 		for (int i = 0; i < ARG_MAX; i++)
-			free(args[i]);
-		free(args);
+			free(cmd[i]);
+		free(cmd);
 	}
 	return EXIT_SUCCESS;
 }
@@ -74,19 +76,26 @@ int line_delim(char c){
 }
 
 char **read_args(char *line){
-	char **args = malloc(sizeof(char*) * ARG_MAX);
-	if (args == NULL) {
+
+	/* Initialize and clear the argument buffer. */
+	char **cmd = malloc(sizeof(char*) * ARG_MAX);
+	if (cmd == NULL) {
 		fprintf(stderr, "Your system has some issues.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	for (int i = 0; i < ARG_MAX; i++) {
-		args[i] = malloc(sizeof(char) * ARG_BUF);
-		if (args[i] == NULL) {
+		cmd[i] = malloc(sizeof(char) * ARG_BUF);
+		if (cmd[i] == NULL) {
 			fprintf(stderr, "Your system has some issues.\n");
 			exit(EXIT_FAILURE);
 		}
-		memset(args[i], 0, ARG_BUF);
+		memset(cmd[i], 0, ARG_BUF);
+	}
+
+	if (line[0] == '\n') {
+		cmd[0][0] = '\n';
+		return cmd;
 	}
 
 	int i = 0, j = 0, k = 0;
@@ -101,38 +110,27 @@ char **read_args(char *line){
 			j++;
 			k = 0;
 		} else {
-			args[j][k] = line[i];
+			cmd[j][k] = line[i];
 			k++;
 		}
 	}
 
-	return args;
+	return cmd;
 }
 
 int run_cmd(char **cmd) {
-	if (strcmp(cmd[0], "exit") == 0) {
+	if (exit_shell(cmd)) {
 		return STOP;
+	} else if (cmd[0][0] == '\n') {
+		return CONTINUE;
 	} else if (strcmp(cmd[0], "cd")  == 0) {
 		return cd(cmd);
 	} else if (strcmp(cmd[0], "pwd")  == 0) {
 		return pwd();
 	} else {
-	pid_t pid;
-	int status;
-
-	pid = fork();
-	if (pid == -1)  {
-		fprintf(stderr, "Error: fork failed.\n");
-		exit(EXIT_FAILURE);
-	} else if (pid == 0) {
-		execvp(cmd[0],cmd);
-		fprintf(stderr, "Error: that's not a thing guy.\n");
-		exit(EXIT_FAILURE);
-	} else {
-		waitpid(-1, &status, 0);
-		return WEXITSTATUS(status);
-		}
+		return(external(cmd));
 	}
+
 }
 
 int pwd() {
@@ -157,4 +155,26 @@ int cd(char **cmd){
 
 void sigint_handler(int signum) {
 	printf("BWA HA HA HA HA HA HA\n");
+}
+
+int exit_shell(char **cmd) {
+	return (strcmp(cmd[0], "exit") == 0 || strcmp(cmd[0], "\0") == 0 );
+}
+
+int external(char **cmd) {
+	pid_t pid;
+	int status;
+
+	pid = fork();
+	if (pid == -1)  {
+		fprintf(stderr, "Error: fork failed.\n");
+		exit(EXIT_FAILURE);
+	} else if (pid == 0) {
+		execvp(cmd[0],cmd);
+		fprintf(stderr, "Error: that's not a thing guy.\n");
+		exit(EXIT_FAILURE);
+	} else {
+		waitpid(-1, &status, 0);
+		return WEXITSTATUS(status);
+	}
 }
