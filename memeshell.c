@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 /*
  * Making some macros to improve readability and portability.
  */
@@ -20,6 +19,8 @@
 #define ARG_MAX      8
 #define ARG_BUF      64
 
+#define CONTINUE     1
+#define STOP         0
 
 void print_shell(void);
 char *read_line(void);
@@ -27,10 +28,11 @@ char **read_args(char *line);
 int line_delim(char c);
 int run_cmd(char **cmd);
 int pwd();
+int cd(char **cmd);
 
 int main(void) {
 	char *line, **args;
-	int status;
+	int status = CONTINUE;
 
 	while(status) {
 		print_shell();
@@ -107,9 +109,9 @@ char **read_args(char *line){
 
 int run_cmd(char **cmd) {
 	if (strcmp(cmd[0], "exit") == 0) {
-		return 0;
+		return STOP;
 	} else if (strcmp(cmd[0], "cd")  == 0) {
-		return chdir(cmd[0]);
+		return cd(cmd);
 	} else if (strcmp(cmd[0], "pwd")  == 0) {
 		return pwd();
 	} else {
@@ -119,11 +121,11 @@ int run_cmd(char **cmd) {
 	pid = fork();
 	if (pid == -1)  {
 		fprintf(stderr, "Error: fork failed.");
-		exit(1);
+		exit(EXIT_FAILURE);
 	} else if (pid == 0) {
 		execvp(cmd[0],cmd);
 		fprintf(stderr, "Error: command not found\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	} else {
 		waitpid(-1, &status, 0);
 		return WEXITSTATUS(status);
@@ -135,5 +137,18 @@ int pwd()  {
 	char curdir[LINE_BUFFER];
 	getcwd(curdir, LINE_BUFFER);
 	printf(" %s\n", curdir);
-	return 0; //pwd literally can't fail
+	return CONTINUE;
+}
+
+int cd(char **cmd){
+	if (cmd[1][0] == '\0') {
+		if(chdir("~") != 0) {
+			fprintf(stderr, "How?!?!?!?\n");
+		}
+	} else if (cmd[2][0] != '\0') {
+		fprintf(stderr, "Too many arguments. What even are you thinking? You can't be in two directory's at once. Seriously... Calm down man.\n");
+	} else if (chdir(cmd[1]) != 0) {
+		fprintf(stderr, "Not a directory or something.\n");
+	}
+	return CONTINUE;
 }
