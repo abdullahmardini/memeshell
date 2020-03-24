@@ -88,54 +88,6 @@ int line_delim(char c){
 }
 
 char **read_args(char *line){
-
-	// /* Initialize and clear the argument buffer. */
-	// char **cmd = malloc(sizeof(char*) * ARG_MAX);
-	// if (cmd == NULL) {
-	// 	fprintf(stderr, "Your system has some issues.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-	// // for (int i = 0; i < ARG_MAX; i++) {
-	// // 	cmd[i] = malloc(sizeof(char) * ARG_BUF);
-	// // 	if (cmd[i] == NULL) {
-	// // 		fprintf(stderr, "Your system has some issues.\n");
-	// // 		exit(EXIT_FAILURE);
-	// // 	}
-	// // 	memset(cmd[i], 0, ARG_BUF);
-	// // }
-
-	// if (line[0] == '\n') {
-	// 	cmd[0][0] = '\n';
-	// 	return cmd;
-	// }
-
-	// int i = 0, j = 0, k = 0;
-
-	// /* Trim any whitespace in the beginning. */
-	// while (line_delim(line[i])) {
-	// 	i++;
-	// }
-
-	// for (; i < LINE_BUFFER, j < ARG_MAX; i++) {
-	// 	if (cmd[j] == NULL) {
-	// 		cmd[j] = malloc(sizeof(char) * ARG_BUF);
-	// 		if (cmd[j] == NULL) {
-	// 			fprintf(stderr, "Your system has some issues.\n");
-	// 			exit(EXIT_FAILURE);
-	// 		}
-	// 		memset(cmd[j], 0, ARG_BUF);
-	// 	}
-	// 	if (line_delim(line[i])) {
-	// 		/* Null terminate the string. */
-	// 		//cmd[j][k] = '\0';
-	// 		j++;
-	// 		k = 0;
-	// 	} else {
-	// 		cmd[j][k] = line[i];
-	// 		k++;
-	// 	}
-	// }
 	char **cmd = malloc(sizeof(char*) * ARG_MAX), *token;
 	int i;
 	if (cmd == NULL) {
