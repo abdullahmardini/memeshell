@@ -48,7 +48,6 @@ int external(char **cmd);
 /* Delimiters I use to know when to stop parsing a given character. */
 int line_delim(char c);
 
-
 int main(void) {
 	//signal(SIGINT, sigint_handler);
 	char *line, **cmd;
@@ -61,9 +60,13 @@ int main(void) {
 		status = run_cmd(cmd);
 
 		free(line);
-		for (int i = 0; cmd[i] != NULL; i++)
+		line = NULL;
+		for (int i = 0; cmd[i] != NULL; i++) {
 			free(cmd[i]);
+			cmd[i] = NULL;
+		}
 		free(cmd);
+		cmd = NULL;
 	}
 	printf("You'll miss me... \n");
 	return EXIT_SUCCESS;
@@ -77,13 +80,18 @@ void print_shell() {
 
 char *read_line(void){
 	char *line = malloc(sizeof(char) * LINE_BUFFER);
+
 	if (line == NULL) {
 		fprintf(stderr, "Your system has some issues.\n");
 		exit(EXIT_FAILURE);
 	}
+
 	memset(line, 0, LINE_BUFFER);
-	if (fgets(line, LINE_BUFFER, stdin) == NULL)
+
+	if (fgets(line, LINE_BUFFER, stdin) == NULL) {
+		/* User pressed control+D, time to go home. */
 		exit(EXIT_SUCCESS);
+	}
 	return line;
 }
 
@@ -94,6 +102,9 @@ char **read_args(char *line){
 		fprintf(stderr, "Your system has some issues.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	memset(cmd, 0, ARG_MAX);
+
 
 	for (int i = 0, j = 0, k = 0; i < LINE_BUFFER; j++, k = 0) {
 		/* Stop when we hit a new line character. Yes I know bash can do some
