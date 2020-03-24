@@ -1,6 +1,10 @@
 /*
- * Wanted to try to write a simple shell again. Ideally, I want to bundle this
- * with cowsay, for kicks and giggles.
+ * Wanted to try to write a simple shell again. My goal is use cowsay to push
+ * everything you type through a cow, or some other art. The plan is literally
+ * to be ridiculous.
+ * I also wanted a fairly usable shell. Right now, my main goal is to support
+ * git, so that I can actually stuff in this shell. Then I should support piping
+ * and input/output direction, but that may be a pipe dream :p.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,6 +96,9 @@ char **read_args(char *line){
 	}
 
 	for (int i = 0, j = 0, k = 0; i < LINE_BUFFER; j++, k = 0) {
+		/* Stop when we hit a new line character. Yes I know bash can do some
+		 * advanced magic with \, but this isn't bash darn it.
+		 * Otherwise, we'll allocate some space and do stuff. */
 		if (line[i] == '\n') {
 			break;
 		} else if (cmd[j] == NULL) {
@@ -101,24 +108,30 @@ char **read_args(char *line){
 				exit(EXIT_FAILURE);
 			}
 			memset(cmd[j], 0, ARG_BUF);
+		} else {
+			/* Either way, we should clear that buffer. */
+			memset(cmd[j], 0, ARG_BUF);
 		}
+
+		/* Eat up all the white space.*/
+		while (line[i] == ' ') {
+			i++;
+		}
+
+		/* I want to treat anything in a paranthesis as verbatim. Unfortunately,
+		 * strtok did not allow this level of granularity. I wish it did :/ . */
 		if (line[i] == '"') {
 			do {
 				cmd[j][k] = line[i];
 				i++;
 				k++;
 			} while (line[i] != '"');
-		} else if ( line[i] == ' ') {
-			/* Eat up all the white space.*/
-			while (line[i] == ' ') {
-				i++;
-			}
-			while (line_delim(line[i])) {
-				cmd[j][k] = line[i];
-				i++;
-				k++;
-			}
+			/* Copy over that trailing close paranthesis. */
+			cmd[j][k] = line[i];
+			i++;
+			k++;
 		} else {
+			/* Otherwise, I'll just copy over what I see in the line. */
 			while (line_delim(line[i])) {
 				cmd[j][k] = line[i];
 				i++;
