@@ -15,36 +15,38 @@
 /*
  * Making some macros to improve readability and portability.
  */
-#define LINE_BUFFER  512
-#define ARG_MAX      8
-#define ARG_BUF      64
+#define LINE_BUFFER 	512
+#define ARG_MAX			15
+#define ARG_BUF			256
+#define CONTINUE		1
+#define STOP			0
 
-#define TOKEN_DELIM " \t\r\n\a"
 
-#define CONTINUE     1
-#define STOP         0
-
-/* Stealing control+c so you can't exit the program that way. */
+/* Stealing control+c so you can't exit the program that way. >:) */
 void sigint_handler(int signum);
 /* Prints the shell stuff. Eventually going to do more. */
 void print_shell(void);
-/* Reads the input a line at a time. */
+/* Reads the input a line at a time. Using fgets. We use the status of fgets to
+ * determine if we've hit an EOF and should quit. */
 char *read_line(void);
-/* Parses the line to get the commands and the arguments. */
+/* Parses the line to get the commands and the arguments. Uses strtok because
+ * it's more elegant and less error prone than reading char by char. */
 char **read_args(char *line);
-/* Checks if we've reach a character I should treat as a delimiter. */
-int line_delim(char c);
 /* Takes the parsed line, and runs the command it got from it. */
 int run_cmd(char **cmd);
 /* Built in pwd tool. */
 int pwd();
-/* chdir to change the directory. */
+/* Uses chdir to change the directory. TODO: cd with nothing should cd to your
+ * home directory. */
 int cd(char **cmd);
-/* Uses fork and execvp to call an external tool. */
+/* Uses fork and execvp to call an external application. */
 int external(char **cmd);
+/* Delimiters I use to know when to stop parsing a given character. */
+int line_delim(char c);
+
 
 int main(void) {
-	signal(SIGINT, sigint_handler);
+	//signal(SIGINT, sigint_handler);
 	char *line, **cmd;
 	int status = CONTINUE;
 
@@ -55,9 +57,11 @@ int main(void) {
 		status = run_cmd(cmd);
 
 		free(line);
+		for (int i = 0; cmd[i] != NULL; i++)
+			free(cmd[i]);
 		free(cmd);
 	}
-	printf("\n");
+	printf("You'll miss me... \n");
 	return EXIT_SUCCESS;
 }
 
@@ -79,34 +83,55 @@ char *read_line(void){
 	return line;
 }
 
-int line_delim(char c){
-	if (c == ' ' || c == '\0' || c == '\n')
-		return 1;
-	return 0;
-}
-
 char **read_args(char *line){
 	char **cmd = malloc(sizeof(char*) * ARG_MAX), *token;
-	int i;
+
 	if (cmd == NULL) {
 		fprintf(stderr, "Your system has some issues.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	token = strtok(line, TOKEN_DELIM);
-
-	for (i = 0; i < ARG_MAX - 1 || token != NULL; i++) {
-		cmd[i] = token;
-		token = strtok(NULL, TOKEN_DELIM);
+	for (int i = 0, j = 0, k = 0; i < LINE_BUFFER; j++, k = 0) {
+		if (line[i] == '\n') {
+			break;
+		} else if (cmd[j] == NULL) {
+			cmd[j] = malloc(sizeof(char) * ARG_BUF);
+			if (cmd[j] == NULL) {
+				fprintf(stderr, "Your system has some issues.\n");
+				exit(EXIT_FAILURE);
+			}
+			memset(cmd[j], 0, ARG_BUF);
+		}
+		if (line[i] == '"') {
+			do {
+				cmd[j][k] = line[i];
+				i++;
+				k++;
+			} while (line[i] != '"');
+		} else if ( line[i] == ' ') {
+			/* Eat up all the white space.*/
+			while (line[i] == ' ') {
+				i++;
+			}
+			while (line_delim(line[i])) {
+				cmd[j][k] = line[i];
+				i++;
+				k++;
+			}
+		} else {
+			while (line_delim(line[i])) {
+				cmd[j][k] = line[i];
+				i++;
+				k++;
+			}
+		}
 	}
-
-	cmd[++i] = NULL;
 
 	return cmd;
 }
 
 int run_cmd(char **cmd) {
-	if (cmd[0]== NULL) {
+	if (cmd[0][0] == '\0') {
 		return CONTINUE;
 	} else if (strcmp(cmd[0], "exit") == 0) {
 		return STOP;
@@ -161,4 +186,11 @@ int external(char **cmd) {
 		fprintf(stderr,"%c\n", WEXITSTATUS(status));
 		return CONTINUE;
 	}
+}
+
+int line_delim(char c) {
+	if (c == ' ' || c == '\n' || c == '\t' || c == '\a')
+		return STOP;
+	else
+		return CONTINUE;
 }
