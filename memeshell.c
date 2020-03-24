@@ -55,8 +55,6 @@ int main(void) {
 		status = run_cmd(cmd);
 
 		free(line);
-		//for (int i = 0; cmd[i] != NULL; i++)
-		//	free(cmd[i]);
 		free(cmd);
 	}
 	printf("\n");
@@ -130,11 +128,11 @@ int pwd() {
 }
 
 int cd(char **cmd){
-	if (cmd[1][0] == '\0') {
+	if (cmd[1] == NULL) {
 		if(chdir("~") != 0) {
 			fprintf(stderr, "How?!?!?!?\n");
 		}
-	} else if (cmd[2][0] != '\0') {
+	} else if (cmd[2] != NULL) {
 		fprintf(stderr, "Too many arguments. What even are you thinking? You can't be in two directory's at once. Seriously... Calm down man.\n");
 	} else if (chdir(cmd[1]) != 0) {
 		fprintf(stderr, "Not a directory or something.\n");
