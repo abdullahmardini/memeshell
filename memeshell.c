@@ -1,10 +1,12 @@
 /*
  * Wanted to try to write a simple shell again. My goal is use cowsay to push
  * everything you type through a cow, or some other art. The plan is literally
- * to be ridiculous.
- * I also wanted a fairly usable shell. Right now, my main goal is to support
- * git, so that I can actually stuff in this shell. Then I should support piping
- * and input/output direction, but that may be a pipe dream :p.
+ * to be ridiculous, but I also wanted to play we concepts I learned but didn't
+ * use.
+ * I also want a fairly usable shell. Right now, my main goal is to support git,
+ * so that I can actually stuff in this shell. Then I should support piping,
+ * some other cool stuff like tab completion, and input/output direction, but
+ * that may be a pipe dream :p.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +26,6 @@
 #define ARG_BUF			256
 #define CONTINUE		1
 #define STOP			0
-
 
 /* Stealing control+c so you can't exit the program that way. >:) */
 void sigint_handler(int signum);
@@ -49,7 +50,12 @@ int external(char **cmd);
 int line_delim(char c);
 
 int main(void) {
-	//signal(SIGINT, sigint_handler);
+	signal(SIGINT, sigint_handler);
+	/* line is the entire line you entered, in it's unmodified form. execvp
+	 * can't use it in this form, so we have to parse it and separate out
+	 * commands and arguments and place them in a 2d array. We do this because
+	 * execvp excepts them to be in this form. Note: this necessarily means some
+	 * complicated struct will make your life harder, and will not help. */
 	char *line, **cmd;
 	int status = CONTINUE;
 
@@ -73,9 +79,8 @@ int main(void) {
 }
 
 void print_shell() {
-		/* Print prompt */
-		printf("memeshell> ");
-		fflush(stdout);
+	printf("memeshell> ");
+	fflush(stdout);
 }
 
 char *read_line(void){
@@ -92,11 +97,12 @@ char *read_line(void){
 		/* User pressed control+D, time to go home. */
 		exit(EXIT_SUCCESS);
 	}
+
 	return line;
 }
 
 char **read_args(char *line){
-	char **cmd = malloc(sizeof(char*) * ARG_MAX), *token;
+	char **cmd = malloc(sizeof(char*) * ARG_MAX);
 
 	if (cmd == NULL) {
 		fprintf(stderr, "Your system has some issues.\n");
@@ -105,24 +111,25 @@ char **read_args(char *line){
 
 	memset(cmd, 0, ARG_MAX);
 
-
-	for (int i = 0, j = 0, k = 0; i < LINE_BUFFER; j++, k = 0) {
-		/* Stop when we hit a new line character. Yes I know bash can do some
-		 * advanced magic with \, but this isn't bash darn it.
-		 * Otherwise, we'll allocate some space and do stuff. */
-		if (line[i] == '\n') {
-			break;
-		} else if (cmd[j] == NULL) {
+	/* i tracks the position in the line array. j tracks the token in cmd, and k
+	 * tracks the position in that token. We stop when wither we run out the
+	 * line, the character in the line is a new line (the user hit enter), or j
+	 * has run out of tokens. While this isn't dynamic, this is supposedly to be
+	 * simple. */
+	for (int i = 0, j = 0, k = 0; i < LINE_BUFFER && line[i] != '\n' && j < ARG_MAX; j++, k = 0) {
+		/* And, yes I know bash can do some advanced magic with \, but this
+		 * isn't bash darn it. */
+		if (cmd[j] == NULL) {
 			cmd[j] = malloc(sizeof(char) * ARG_BUF);
 			if (cmd[j] == NULL) {
 				fprintf(stderr, "Your system has some issues.\n");
 				exit(EXIT_FAILURE);
 			}
-			memset(cmd[j], 0, ARG_BUF);
-		} else {
-			/* Either way, we should clear that buffer. */
-			memset(cmd[j], 0, ARG_BUF);
 		}
+
+		/* Either way, we should clear that buffer. */
+		memset(cmd[j], 0, ARG_BUF);
+
 
 		/* Eat up all the white space.*/
 		while (line[i] == ' ') {
@@ -166,19 +173,21 @@ int run_cmd(char **cmd) {
 	} else {
 		return(external(cmd));
 	}
-
 }
 
 int pwd() {
 	char curdir[LINE_BUFFER];
-	getcwd(curdir, LINE_BUFFER);
-	printf(" %s\n", curdir);
+	if (getcwd(curdir, LINE_BUFFER) == NULL) {
+		fprintf(stderr, "UH.... pWd failed somehow.\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("%s\n", curdir);
 	return CONTINUE;
 }
 
 int cd(char **cmd){
 	if (cmd[1] == NULL) {
-		if(chdir("~") != 0) {
+		if(chdir(getenv("HOME")) != 0) {
 			fprintf(stderr, "How?!?!?!?\n");
 		}
 	} else if (cmd[2] != NULL) {
